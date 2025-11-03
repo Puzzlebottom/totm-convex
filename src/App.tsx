@@ -2,6 +2,17 @@
 
 import { useAuthActions } from "@convex-dev/auth/react"
 import {
+  Box,
+  Button,
+  Card,
+  GradientText,
+  Heading,
+  Input,
+  Text,
+  UIProvider,
+} from "@puzzlebottom/totm-ui-components"
+
+import {
   Authenticated,
   Unauthenticated,
   useConvexAuth,
@@ -16,19 +27,21 @@ import { Character, Encounter, Monster } from "../convex/types"
 export default function App() {
   return (
     <>
-      <header className="sticky top-0 z-10 bg-light dark:bg-dark p-4 border-b-2 border-slate-200 dark:border-slate-800">
-        TOTM
-        <SignOutButton />
-      </header>
-      <main className="p-8 flex flex-col gap-d16">
-        <h1 className="text-4xl font-bold text-center">TOTM Combat Tracker</h1>
-        <Authenticated>
-          <Content />
-        </Authenticated>
-        <Unauthenticated>
-          <SignInForm />
-        </Unauthenticated>
-      </main>
+      <UIProvider defaultTheme="dark">
+        <Box p="$4" borderBottomWidth={2}>
+          <Text>TOTM</Text>
+          <SignOutButton />
+        </Box>
+        <Box p="$8" flexDirection="column" gap="$4" items="center">
+          <GradientText>TOTM Combat Tracker</GradientText>
+          <Authenticated>
+            <Content />
+          </Authenticated>
+          <Unauthenticated>
+            <SignInForm />
+          </Unauthenticated>
+        </Box>
+      </UIProvider>
     </>
   )
 }
@@ -39,12 +52,9 @@ function SignOutButton() {
   return (
     <>
       {isAuthenticated && (
-        <button
-          className="bg-slate-200 dark:bg-slate-800 text-dark dark:text-light rounded-md px-2 py-1"
-          onClick={() => void signOut()}
-        >
-          Sign out
-        </button>
+        <Button variant="outline" size="$3" onPress={() => void signOut()}>
+          <Button.Text>Sign out</Button.Text>
+        </Button>
       )}
     </>
   )
@@ -54,60 +64,74 @@ function SignInForm() {
   const { signIn } = useAuthActions()
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
   const [error, setError] = useState<string | null>(null)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+
+  const handleSubmit = () => {
+    const formData = new FormData()
+    formData.set("email", email)
+    formData.set("password", password)
+    formData.set("flow", flow)
+    void signIn("password", formData).catch(error => {
+      setError(error.message)
+    })
+  }
+
+  const handleKeyPress = (e: any) => {
+    if (e.key === "Enter") {
+      handleSubmit()
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-8 w-96 mx-auto">
-      <p>Log in to see the numbers</p>
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={e => {
-          e.preventDefault()
-          const formData = new FormData(e.target as HTMLFormElement)
-          formData.set("flow", flow)
-          void signIn("password", formData).catch(error => {
-            setError(error.message)
-          })
-        }}
-      >
-        <input
-          className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-2 border-2 border-slate-200 dark:border-slate-800"
-          type="email"
-          name="email"
+    <Box flexDirection="column" gap="$8" width={384} mx="auto">
+      <Text>Log in to see the numbers</Text>
+      <Box flexDirection="column" gap="$2">
+        <Input
           placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          onKeyPress={handleKeyPress}
         />
-        <input
-          className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-2 border-2 border-slate-200 dark:border-slate-800"
-          type="password"
-          name="password"
+        <Input
           placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          onKeyPress={handleKeyPress}
         />
-        <button
-          className="bg-dark dark:bg-light text-light dark:text-dark rounded-md"
-          type="submit"
-        >
-          {flow === "signIn" ? "Sign in" : "Sign up"}
-        </button>
-        <div className="flex flex-row gap-2">
-          <span>
+        <Button variant="primary" size="$4" onPress={handleSubmit}>
+          <Button.Text>{flow === "signIn" ? "Sign in" : "Sign up"}</Button.Text>
+        </Button>
+        <Box flexDirection="row" gap="$2">
+          <Text>
             {flow === "signIn"
               ? "Don't have an account?"
               : "Already have an account?"}
-          </span>
-          <span
-            className="text-dark dark:text-light underline hover:no-underline cursor-pointer"
-            onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
+          </Text>
+          <Text
+            textDecorationLine="underline"
+            cursor="pointer"
+            onPress={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
           >
             {flow === "signIn" ? "Sign up instead" : "Sign in instead"}
-          </span>
-        </div>
+          </Text>
+        </Box>
         {error && (
-          <div className="bg-red-500/20 border-2 border-red-500/50 rounded-md p-2">
-            <p className="text-dark dark:text-light font-mono text-xs">
-              Error signing in: {error}
-            </p>
-          </div>
+          <Box
+            bg="$red5"
+            borderWidth={2}
+            borderColor="$red7"
+            rounded="$4"
+            p="$2"
+          >
+            <Text fontSize="$2">Error signing in: {error}</Text>
+          </Box>
         )}
-      </form>
-    </div>
+      </Box>
+    </Box>
   )
 }
 
@@ -160,46 +184,34 @@ function Content() {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-lg mx-auto">
-      <div className="flex flex-col gap-4">
-        <input
-          className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-2 border-2 border-slate-200 dark:border-slate-800 w-full"
-          type="text"
+    <Box flexDirection="column" gap="$8" maxW={512} mx="auto">
+      <Box flexDirection="column" gap="$4">
+        <Input
           autoFocus
-          autoComplete="off"
-          name="name"
           placeholder="Name"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChangeText={setName}
         />
-        <div className="flex flex-row gap-2">
-          <button
-            className="bg-dark dark:bg-light text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            disabled={!name}
-            onClick={handleAddCharacter}
+        <Box flexDirection="row" gap="$2">
+          <Button variant="primary" size="$6" onPress={handleAddCharacter}>
+            <Button.Text>Add Player Character</Button.Text>
+          </Button>
+          <Button variant="secondary" size="$6" onPress={handleAddEncounter}>
+            <Button.Text>Add Encounter</Button.Text>
+          </Button>
+          <Button
+            variant="outline"
+            size="$6"
+            onPress={handleAddMonsterTemplate}
           >
-            Add Player Character
-          </button>
-          <button
-            className="bg-dark dark:bg-light text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            disabled={!name}
-            onClick={handleAddEncounter}
-          >
-            Add Encounter
-          </button>
-          <button
-            className="bg-dark dark:bg-light text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            disabled={!name}
-            onClick={handleAddMonsterTemplate}
-          >
-            Add Monster Template
-          </button>
-        </div>
-      </div>
+            <Button.Text>Add Monster Template</Button.Text>
+          </Button>
+        </Box>
+      </Box>
 
-      <div className="flex flex-col gap-4">
-        <p className="flex flex-col gap-4">My Encounters:</p>
-        <div className="flex flex-col gap-2">
+      <Box flexDirection="column" gap="$4">
+        <Heading>My Encounters:</Heading>
+        <Box flexDirection="column" gap="$2">
           {myEncounters?.map(e => (
             <EncounterCard
               key={e._id}
@@ -208,12 +220,12 @@ function Content() {
               onSelect={handleSelectEncounter}
             />
           ))}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div className="flex flex-col gap-4">
-        <p>Available Characters:</p>
-        <div className="flex flex-col gap-2">
+      <Box flexDirection="column" gap="$4">
+        <Heading>Available Characters:</Heading>
+        <Box flexDirection="column" gap="$2">
           {characters?.map(c => (
             <CharacterCard
               key={c._id}
@@ -221,12 +233,12 @@ function Content() {
               selectedEncounterId={selectedEncounterId}
             />
           ))}
-        </div>
-      </div>
+        </Box>
+      </Box>
 
-      <div className="flex flex-col gap-4">
-        <p>Monster Templates:</p>
-        <div className="flex flex-col gap-2">
+      <Box flexDirection="column" gap="$4">
+        <Heading>Monster Templates:</Heading>
+        <Box flexDirection="column" gap="$2">
           {monsterTemplates?.map(m => (
             <MonsterTemplateCard
               key={m._id}
@@ -234,9 +246,9 @@ function Content() {
               selectedEncounterId={selectedEncounterId}
             />
           ))}
-        </div>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   )
 }
 
@@ -264,34 +276,44 @@ function EncounterCard({
     }) ?? []
 
   return (
-    <div
-      className={`flex flex-col bg-light dark:bg-dark text-dark dark:text-light rounded-md p-4 gap-4 border-2 border-slate-200 ${isSelected ? "dark:border-slate-200" : "dark:border-slate-800"}`}
-      onClick={() => onSelect(encounter._id)}
+    <Card
+      p="$4"
+      gap="$4"
+      borderWidth={2}
+      borderColor={isSelected ? "$blue9" : "$gray6"}
+      onPress={() => onSelect(encounter._id)}
     >
-      <div className="flex flex-row justify-between items-center">
-        <p className="text-2xl font-bold">{encounter.name}</p>
-        <button
-          className="bg-red-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-          onClick={() => void deleteEncounter({ id: encounter._id })}
+      <Box flexDirection="row" justify="space-between" items="center">
+        <Heading fontSize="$8" fontWeight="bold">
+          {encounter.name}
+        </Heading>
+        <Button
+          variant="outline"
+          size="$4"
+          onPress={() => void deleteEncounter({ id: encounter._id })}
         >
-          Delete
-        </button>
-      </div>
+          <Button.Text>Delete</Button.Text>
+        </Button>
+      </Box>
       <>
         {playerCharacters.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-lg font-bold">Player Characters:</p>
-            <div className="flex flex-col gap-2">
+          <Box flexDirection="column" gap="$2">
+            <Heading fontSize="$6" fontWeight="bold">
+              Player Characters:
+            </Heading>
+            <Box flexDirection="column" gap="$2">
               {playerCharacters?.map(c => (
-                <div
-                  key={c._id}
-                  className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-4 border-2 border-slate-200 dark:border-slate-800"
-                >
-                  <div className="flex flex-row justify-between items-center">
-                    <p>{c.name}</p>
-                    <button
-                      className="bg-slate-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-                      onClick={e => {
+                <Card key={c._id} p="$4" borderWidth={2}>
+                  <Box
+                    flexDirection="row"
+                    justify="space-between"
+                    items="center"
+                  >
+                    <Text>{c.name}</Text>
+                    <Button
+                      variant="outline"
+                      size="$4"
+                      onPress={(e: any) => {
                         e.stopPropagation()
                         void removeCharacterFromEncounter({
                           encounterId: encounter._id,
@@ -299,42 +321,46 @@ function EncounterCard({
                         })
                       }}
                     >
-                      Remove
-                    </button>
-                  </div>
-                </div>
+                      <Button.Text>Remove</Button.Text>
+                    </Button>
+                  </Box>
+                </Card>
               ))}
-            </div>
-          </div>
+            </Box>
+          </Box>
         )}
         {monsters.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <p className="text-lg font-bold">Monsters:</p>
-            <div className="flex flex-col gap-2">
+          <Box flexDirection="column" gap="$2">
+            <Heading fontSize="$6" fontWeight="bold">
+              Monsters:
+            </Heading>
+            <Box flexDirection="column" gap="$2">
               {monsters?.map(m => (
-                <div
-                  key={m._id}
-                  className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-4 border-2 border-slate-200 dark:border-slate-800"
-                >
-                  <div className="flex flex-row justify-between items-center">
-                    <p>{m.name}</p>
-                    <button
-                      className="bg-slate-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-                      onClick={e => {
+                <Card key={m._id} p="$4" borderWidth={2}>
+                  <Box
+                    flexDirection="row"
+                    justify="space-between"
+                    items="center"
+                  >
+                    <Text>{m.name}</Text>
+                    <Button
+                      variant="outline"
+                      size="$4"
+                      onPress={(e: any) => {
                         e.stopPropagation()
                         void removeMonsterFromEncounter({ id: m._id })
                       }}
                     >
-                      Remove
-                    </button>
-                  </div>
-                </div>
+                      <Button.Text>Remove</Button.Text>
+                    </Button>
+                  </Box>
+                </Card>
               ))}
-            </div>
-          </div>
+            </Box>
+          </Box>
         )}
       </>
-    </div>
+    </Card>
   )
 }
 
@@ -351,30 +377,32 @@ function CharacterCard({
   )
 
   return (
-    <div className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-4 border-2 border-slate-200 dark:border-slate-800">
-      <div className="flex flex-row justify-between items-center">
-        <p>{character.name}</p>
+    <Card p="$4" borderWidth={2}>
+      <Box flexDirection="row" justify="space-between" items="center">
+        <Text>{character.name}</Text>
         {selectedEncounterId && (
-          <button
-            className="bg-green-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            onClick={() =>
+          <Button
+            variant="secondary"
+            size="$4"
+            onPress={() =>
               void addCharacterToEncounter({
                 characterId: character._id,
                 encounterId: selectedEncounterId,
               })
             }
           >
-            Add
-          </button>
+            <Button.Text>Add</Button.Text>
+          </Button>
         )}
-        <button
-          className="bg-red-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-          onClick={() => void deleteCharacter({ id: character._id })}
+        <Button
+          variant="outline"
+          size="$4"
+          onPress={() => void deleteCharacter({ id: character._id })}
         >
-          Delete
-        </button>
-      </div>
-    </div>
+          <Button.Text>Delete</Button.Text>
+        </Button>
+      </Box>
+    </Card>
   )
 }
 
@@ -391,31 +419,33 @@ function MonsterTemplateCard({
   )
 
   return (
-    <div className="bg-light dark:bg-dark text-dark dark:text-light rounded-md p-4 border-2 border-slate-200 dark:border-slate-800">
-      <div className="flex flex-row justify-between items-center">
-        <p>{monsterTemplate.name}</p>
+    <Card p="$4" borderWidth={2}>
+      <Box flexDirection="row" justify="space-between" items="center">
+        <Text>{monsterTemplate.name}</Text>
         {selectedEncounterId && (
-          <button
-            className="bg-green-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-            onClick={() =>
+          <Button
+            variant="secondary"
+            size="$4"
+            onPress={() =>
               void addMonsterToEncounter({
                 template: monsterTemplate._id,
                 encounterId: selectedEncounterId,
               })
             }
           >
-            Add
-          </button>
+            <Button.Text>Add</Button.Text>
+          </Button>
         )}
-        <button
-          className="bg-red-400 text-light dark:text-dark text-sm px-4 py-2 rounded-md border-2"
-          onClick={() =>
+        <Button
+          variant="outline"
+          size="$4"
+          onPress={() =>
             void deleteMonsterTemplate({ id: monsterTemplate._id })
           }
         >
-          Delete
-        </button>
-      </div>
-    </div>
+          <Button.Text>Delete</Button.Text>
+        </Button>
+      </Box>
+    </Card>
   )
 }

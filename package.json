@@ -18,13 +18,16 @@
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.90",
+    "@puzzlebottom/totm-ui-components": "file:../totm-ui-components/src/puzzlebottom-totm-ui-components-v0.1.0.tgz",
     "convex": "^1.27.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-native-svg": "^15.14.0",
+    "react-native-web": "^0.21.2",
+    "tamagui": "^1.135.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
-    "@tailwindcss/vite": "^4.0.14",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -38,7 +41,6 @@
     "globals": "^15.15.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.5.3",
-    "tailwindcss": "^4.0.14",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0"
