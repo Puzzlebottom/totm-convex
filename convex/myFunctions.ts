@@ -131,6 +131,12 @@ export const listMonstersByEncounter = query({
   },
   returns: v.array(monsterValidator),
   handler: async (ctx, args) => {
+    const encounter = await ctx.db.get(args.encounterId)
+    if (!encounter) {
+      // Encounter was deleted, return empty array
+      return []
+    }
+
     await checkEncounterAuthorization(ctx, args.encounterId)
 
     const monsters = await ctx.db
@@ -252,6 +258,12 @@ export const listCharactersByEncounter = query({
   },
   returns: v.array(characterValidator),
   handler: async (ctx, args) => {
+    const encounter = await ctx.db.get(args.encounterId)
+    if (!encounter) {
+      // Encounter was deleted, return empty array
+      return []
+    }
+
     const characters = await ctx.db
       .query("characters")
       .withIndex("by_encounter", q => q.eq("encounter", args.encounterId))

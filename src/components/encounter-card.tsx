@@ -34,6 +34,14 @@ export const EncounterCard = ({
       encounterId: encounter._id,
     }) ?? []
 
+  const handleDeleteEncounter = () => {
+    if (isSelected) {
+      // If the encounter is selected, deselect it
+      onSelect(encounter._id)
+    }
+    void deleteEncounter({ id: encounter._id })
+  }
+
   const renderContent = () => (
     <Card
       p="$4"
@@ -46,11 +54,7 @@ export const EncounterCard = ({
         <Heading fontSize="$8" fontWeight="bold">
           {encounter.name}
         </Heading>
-        <Button
-          variant="outline"
-          size="$4"
-          onPress={() => void deleteEncounter({ id: encounter._id })}
-        >
+        <Button variant="outline" size="$4" onPress={handleDeleteEncounter}>
           <Button.Text>Delete</Button.Text>
         </Button>
       </Box>
