@@ -17,6 +17,7 @@ import type * as tables_events from "../tables/events.js";
 import type * as tables_index from "../tables/index.js";
 import type * as tables_monsters from "../tables/monsters.js";
 import type * as types from "../types.js";
+import type * as validators from "../validators.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   "tables/index": typeof tables_index;
   "tables/monsters": typeof tables_monsters;
   types: typeof types;
+  validators: typeof validators;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

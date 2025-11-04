@@ -1,10 +1,6 @@
 import { defineTable } from "convex/server"
-import { v } from "convex/values"
+import { characterFields } from "../validators"
 
-export const characters = defineTable({
-  name: v.string(),
-  userId: v.id("users"),
-  encounter: v.union(v.null(), v.id("encounters")),
-})
+export const characters = defineTable(characterFields)
   .index("by_userId", ["userId"])
   .index("by_encounter", ["encounter"])

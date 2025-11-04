@@ -1,8 +1,6 @@
 import { defineTable } from "convex/server"
-import { v } from "convex/values"
+import { monsterFields } from "../validators"
 
-export const monsters = defineTable({
-  name: v.string(),
-  encounter: v.union(v.null(), v.id("encounters")),
-  template: v.union(v.null(), v.id("monsters")),
-}).index("by_encounter", ["encounter"])
+export const monsters = defineTable(monsterFields).index("by_encounter", [
+  "encounter",
+])

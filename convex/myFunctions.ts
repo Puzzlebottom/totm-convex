@@ -2,8 +2,15 @@ import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { Id } from "./_generated/dataModel"
 import { mutation, MutationCtx, query, QueryCtx } from "./_generated/server"
+import {
+  characterValidator,
+  encounterValidator,
+  monsterValidator,
+} from "./validators"
 
 export const listEncounters = query({
+  args: {},
+  returns: v.array(encounterValidator),
   handler: async ctx => {
     const encounters = await ctx.db.query("encounters").collect()
     return encounters
@@ -12,6 +19,7 @@ export const listEncounters = query({
 
 export const listEncountersByUser = query({
   args: {},
+  returns: v.array(encounterValidator),
   handler: async ctx => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -27,12 +35,10 @@ export const listEncountersByUser = query({
 
 // You can write data to the database via a mutation:
 export const addEncounter = mutation({
-  // Validators for arguments.
   args: {
     name: v.string(),
   },
-
-  // Mutation implementation.
+  returns: v.id("encounters"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -41,10 +47,6 @@ export const addEncounter = mutation({
     const id = await ctx.db.insert("encounters", {
       name: args.name,
       dungeonMaster: userId,
-      playerCharacters: null,
-      monsters: null,
-      npcs: null,
-      events: null,
     })
 
     console.log("Added new encounter with id:", id)
@@ -56,6 +58,7 @@ export const deleteEncounter = mutation({
   args: {
     id: v.id("encounters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
@@ -112,6 +115,7 @@ export const deleteEncounter = mutation({
 
 export const listMonsterTemplates = query({
   args: {},
+  returns: v.array(monsterValidator),
   handler: async ctx => {
     const monsters = await ctx.db
       .query("monsters")
@@ -125,6 +129,7 @@ export const listMonstersByEncounter = query({
   args: {
     encounterId: v.id("encounters"),
   },
+  returns: v.array(monsterValidator),
   handler: async (ctx, args) => {
     await checkEncounterAuthorization(ctx, args.encounterId)
 
@@ -140,6 +145,7 @@ export const createMonsterTemplate = mutation({
   args: {
     name: v.string(),
   },
+  returns: v.id("monsters"),
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("monsters", {
       name: args.name,
@@ -157,6 +163,7 @@ export const addMonsterToEncounter = mutation({
     encounterId: v.id("encounters"),
     template: v.id("monsters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const { encounter } = await checkEncounterAuthorization(
       ctx,
@@ -176,13 +183,10 @@ export const addMonsterToEncounter = mutation({
     const newMonsterDisciminator = ` ${String.fromCharCode(duplicateMonsters.length + 65)}`
     const newMonsterName = monsterTemplate.name + newMonsterDisciminator
 
-    const newMonsterId = await ctx.db.insert("monsters", {
+    await ctx.db.insert("monsters", {
       name: newMonsterName,
       encounter: args.encounterId,
       template: monsterTemplate._id,
-    })
-    await ctx.db.patch(args.encounterId, {
-      monsters: [...(encounter.monsters || []), newMonsterId],
     })
 
     console.log(`Added ${newMonsterName} to ${encounter.name}`)
@@ -194,6 +198,7 @@ export const deleteMonster = mutation({
   args: {
     id: v.id("monsters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id)
 
@@ -204,7 +209,7 @@ export const deleteMonster = mutation({
 
 export const listCharacters = query({
   args: {},
-
+  returns: v.array(characterValidator),
   handler: async ctx => {
     const characters = await ctx.db.query("characters").collect()
     return characters
@@ -212,10 +217,12 @@ export const listCharacters = query({
 })
 
 export const listAvailableCharacters = query({
+  args: {},
+  returns: v.array(characterValidator),
   handler: async ctx => {
     const characters = await ctx.db
       .query("characters")
-      .filter(q => q.eq(q.field("encounter"), null))
+      .withIndex("by_encounter", q => q.eq("encounter", null))
       .collect()
     return characters
   },
@@ -223,6 +230,7 @@ export const listAvailableCharacters = query({
 
 export const listCharactersByUser = query({
   args: {},
+  returns: v.array(characterValidator),
   handler: async ctx => {
     const userId = await getAuthUserId(ctx)
 
@@ -242,6 +250,7 @@ export const listCharactersByEncounter = query({
   args: {
     encounterId: v.id("encounters"),
   },
+  returns: v.array(characterValidator),
   handler: async (ctx, args) => {
     const characters = await ctx.db
       .query("characters")
@@ -255,6 +264,7 @@ export const createCharacter = mutation({
   args: {
     name: v.string(),
   },
+  returns: v.id("characters"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
 
@@ -278,6 +288,7 @@ export const addCharacterToEncounter = mutation({
     encounterId: v.id("encounters"),
     characterId: v.id("characters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const encounter = await ctx.db.get(args.encounterId)
 
@@ -292,12 +303,6 @@ export const addCharacterToEncounter = mutation({
     }
 
     await ctx.db.patch(args.characterId, { encounter: args.encounterId })
-    await ctx.db.patch(args.encounterId, {
-      playerCharacters: [
-        ...(encounter.playerCharacters || []),
-        args.characterId,
-      ],
-    })
 
     console.log(`Added ${character.name} to ${encounter.name}`)
     return true
@@ -309,6 +314,7 @@ export const removeCharacterFromEncounter = mutation({
     encounterId: v.id("encounters"),
     characterId: v.id("characters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const encounter = await ctx.db.get(args.encounterId)
     if (!encounter) {
@@ -321,11 +327,6 @@ export const removeCharacterFromEncounter = mutation({
     }
 
     await ctx.db.patch(args.characterId, { encounter: null })
-    await ctx.db.patch(args.encounterId, {
-      playerCharacters: encounter.playerCharacters?.filter(
-        c => c !== args.characterId
-      ),
-    })
 
     console.log(`Removed ${character.name} from ${encounter.name}`)
 
@@ -337,22 +338,9 @@ export const deleteCharacter = mutation({
   args: {
     id: v.id("characters"),
   },
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const { character } = await checkCharacterAuthorization(ctx, args.id)
-    const activeEncounter = character.encounter
-      ? await ctx.db.get(character.encounter)
-      : null
-
-    if (activeEncounter) {
-      await ctx.db.patch(activeEncounter._id, {
-        playerCharacters: activeEncounter.playerCharacters?.filter(
-          c => c !== args.id
-        ),
-      })
-      console.log(
-        `Removed character ${character.name} from ${activeEncounter.name}`
-      )
-    }
 
     await ctx.db.delete(args.id)
 

@@ -18,21 +18,19 @@ export enum EventType {
 
 export const events = defineTable({
   encounter: v.id("encounters"),
-  eventType: v.array(
-    v.union(
-      v.literal(EventType.ENTITY_ADDED),
-      v.literal(EventType.ENTITY_REMOVED),
-      v.literal(EventType.ENTITY_UPDATED),
-      v.literal(EventType.ENTITY_ACTION),
-      v.literal(EventType.ROLL_REQUESTED),
-      v.literal(EventType.ROLL_COMPLETED),
-      v.literal(EventType.ROLL_CANCELLED),
-      v.literal(EventType.ROUND_START),
-      v.literal(EventType.ROUND_END),
-      v.literal(EventType.TURN_START),
-      v.literal(EventType.TURN_END),
-      v.literal(EventType.ENCOUNTER_COMPLETED)
-    )
+  eventType: v.union(
+    v.literal(EventType.ENTITY_ADDED),
+    v.literal(EventType.ENTITY_REMOVED),
+    v.literal(EventType.ENTITY_UPDATED),
+    v.literal(EventType.ENTITY_ACTION),
+    v.literal(EventType.ROLL_REQUESTED),
+    v.literal(EventType.ROLL_COMPLETED),
+    v.literal(EventType.ROLL_CANCELLED),
+    v.literal(EventType.ROUND_START),
+    v.literal(EventType.ROUND_END),
+    v.literal(EventType.TURN_START),
+    v.literal(EventType.TURN_END),
+    v.literal(EventType.ENCOUNTER_COMPLETED)
   ),
   deletedAt: v.union(v.null(), v.number()),
 }).index("by_encounter", ["encounter"])
