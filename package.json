@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:lint": "npm run format && npm run lint:fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "update-ui": "rm -rf node_modules/@puzzlebottom package-lock.json && npm install"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.90",

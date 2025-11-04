@@ -1,0 +1,55 @@
+import {
+  Box,
+  Button,
+  Card,
+  GradientBorderView,
+  Text,
+} from "@puzzlebottom/totm-ui-components"
+import { useMutation } from "convex/react"
+import { api } from "../../convex/_generated/api"
+import { Id } from "../../convex/_generated/dataModel"
+import { Character } from "../../convex/types"
+
+export const CharacterCard = ({
+  character,
+  selectedEncounterId,
+}: {
+  character: Character
+  selectedEncounterId?: Id<"encounters"> | null
+}) => {
+  const deleteCharacter = useMutation(api.myFunctions.deleteCharacter)
+  const addCharacterToEncounter = useMutation(
+    api.myFunctions.addCharacterToEncounter
+  )
+
+  return (
+    <GradientBorderView style={{ borderWidth: 2, borderRadius: 10 }}>
+      <Card p="$4" borderWidth={0}>
+        <Box flexDirection="row" justify="space-between" items="center">
+          <Text>{character.name}</Text>
+          {selectedEncounterId && (
+            <Button
+              variant="secondary"
+              size="$4"
+              onPress={() =>
+                void addCharacterToEncounter({
+                  characterId: character._id,
+                  encounterId: selectedEncounterId,
+                })
+              }
+            >
+              <Button.Text>Add</Button.Text>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="$4"
+            onPress={() => void deleteCharacter({ id: character._id })}
+          >
+            <Button.Text>Delete</Button.Text>
+          </Button>
+        </Box>
+      </Card>
+    </GradientBorderView>
+  )
+}

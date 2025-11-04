@@ -82,7 +82,7 @@ This project demonstrates Convex Sync Engine capabilities:
 - **Backend**: [Convex](https://convex.dev/) - Real-time database and backend
 - **Frontend**: [React 19](https://react.dev/) - UI framework
 - **Build Tool**: [Vite](https://vitejs.dev/) - Fast build tool
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS
+- **Styling**: [totm-ui-components](https://github.com/Puzzlebottom/totm-ui-components) - Cross platform component library based on Tamagui
 - **Authentication**: [Convex Auth](https://labs.convex.dev/auth) - User management
 - **Language**: [TypeScript](https://www.typescriptlang.org/) - Type safety
 
