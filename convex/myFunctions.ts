@@ -8,6 +8,25 @@ import {
   monsterValidator,
 } from "./validators"
 
+/**
+ * Get authentication info: userId if user session, or null if service token.
+ * Throws if not authenticated.
+ */
+const getAuthInfo = async (
+  ctx: MutationCtx | QueryCtx
+): Promise<{ userId: Id<"users"> | null; isServiceToken: boolean }> => {
+  const userId = await getAuthUserId(ctx)
+  if (userId) {
+    return { userId, isServiceToken: false }
+  }
+  // Check if authenticated via service token
+  const identity = await ctx.auth.getUserIdentity()
+  if (identity === null) {
+    throw new Error("User not authenticated")
+  }
+  return { userId: null, isServiceToken: true }
+}
+
 export const listEncounters = query({
   args: {},
   returns: v.array(encounterValidator),
@@ -21,13 +40,17 @@ export const listEncountersByUser = query({
   args: {},
   returns: v.array(encounterValidator),
   handler: async ctx => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User not authenticated")
+    const { userId, isServiceToken } = await getAuthInfo(ctx)
+
+    if (isServiceToken) {
+      // Service token can access all encounters
+      return await ctx.db.query("encounters").collect()
     }
+
+    // User session: list their own encounters
     const encounters = await ctx.db
       .query("encounters")
-      .withIndex("by_dungeonMaster", q => q.eq("dungeonMaster", userId))
+      .withIndex("by_dungeonMaster", q => q.eq("dungeonMaster", userId!))
       .collect()
     return encounters
   },
@@ -37,16 +60,20 @@ export const listEncountersByUser = query({
 export const addEncounter = mutation({
   args: {
     name: v.string(),
+    dungeonMaster: v.optional(v.id("users")),
   },
   returns: v.id("encounters"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User not authenticated")
+    const { userId } = await getAuthInfo(ctx)
+
+    const dungeonMaster = userId || args.dungeonMaster
+    if (!dungeonMaster) {
+      throw new Error("dungeonMaster is required when using service token")
     }
+
     const id = await ctx.db.insert("encounters", {
       name: args.name,
-      dungeonMaster: userId,
+      dungeonMaster,
     })
 
     console.log("Added new encounter with id:", id)
@@ -60,17 +87,15 @@ export const deleteEncounter = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("User not authenticated")
-    }
+    const { userId, isServiceToken } = await getAuthInfo(ctx)
 
     const encounter = await ctx.db.get(args.id)
     if (!encounter) {
       throw new Error("Encounter not found")
     }
 
-    if (encounter.dungeonMaster !== userId) {
+    // Service tokens can delete any encounter, users can only delete their own
+    if (!isServiceToken && encounter.dungeonMaster !== userId) {
       throw new Error("You are not authorized to delete this encounter")
     }
 
@@ -137,6 +162,7 @@ export const listMonstersByEncounter = query({
       return []
     }
 
+    // Check authorization (allows service tokens)
     await checkEncounterAuthorization(ctx, args.encounterId)
 
     const monsters = await ctx.db
@@ -171,6 +197,7 @@ export const addMonsterToEncounter = mutation({
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
+    // Check authorization (allows service tokens)
     const { encounter } = await checkEncounterAuthorization(
       ctx,
       args.encounterId
@@ -235,13 +262,18 @@ export const listAvailableCharacters = query({
 })
 
 export const listCharactersByUser = query({
-  args: {},
+  args: {
+    userId: v.optional(v.id("users")),
+  },
   returns: v.array(characterValidator),
-  handler: async ctx => {
-    const userId = await getAuthUserId(ctx)
+  handler: async (ctx, args) => {
+    const { userId: sessionUserId } = await getAuthInfo(ctx)
 
+    // If using service token, userId must be provided
+    // If using user session, use their own userId
+    const userId = sessionUserId || args.userId
     if (!userId) {
-      throw new Error("User not authenticated")
+      throw new Error("userId is required when using service token")
     }
 
     const characters = await ctx.db
@@ -275,13 +307,17 @@ export const listCharactersByEncounter = query({
 export const createCharacter = mutation({
   args: {
     name: v.string(),
+    userId: v.optional(v.id("users")),
   },
   returns: v.id("characters"),
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
+    const { userId: sessionUserId } = await getAuthInfo(ctx)
 
+    // If using service token, userId must be provided
+    // If using user session, use their own userId
+    const userId = sessionUserId || args.userId
     if (!userId) {
-      throw new Error("User not authenticated")
+      throw new Error("userId is required when using service token")
     }
 
     const characterId = await ctx.db.insert("characters", {
@@ -365,17 +401,15 @@ const checkEncounterAuthorization = async (
   ctx: MutationCtx | QueryCtx,
   encounterId: Id<"encounters">
 ) => {
-  const userId = await getAuthUserId(ctx)
-  if (!userId) {
-    throw new Error("User not authenticated")
-  }
+  const { userId, isServiceToken } = await getAuthInfo(ctx)
 
   const encounter = await ctx.db.get(encounterId)
   if (!encounter) {
     throw new Error("Encounter not found")
   }
 
-  if (encounter.dungeonMaster !== userId) {
+  // Service tokens can access any encounter, users can only access their own
+  if (!isServiceToken && encounter.dungeonMaster !== userId) {
     throw new Error("You are not authorized to access this encounter")
   }
 
@@ -386,17 +420,15 @@ const checkCharacterAuthorization = async (
   ctx: MutationCtx | QueryCtx,
   characterId: Id<"characters">
 ) => {
-  const userId = await getAuthUserId(ctx)
-  if (!userId) {
-    throw new Error("User not authenticated")
-  }
+  const { userId, isServiceToken } = await getAuthInfo(ctx)
 
   const character = await ctx.db.get(characterId)
   if (!character) {
     throw new Error("Character not found")
   }
 
-  if (character.userId !== userId) {
+  // Service tokens can access any character, users can only access their own
+  if (!isServiceToken && character.userId !== userId) {
     throw new Error("You are not authorized to access this character")
   }
 
